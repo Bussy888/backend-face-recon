@@ -56,4 +56,4 @@ if (process.env.VERCEL !== '1') {
 }
 
 // Exporta handler para Vercel
-module.exports.handler = serverless(app);
+module.exports = serverless(app);
