@@ -29,6 +29,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 // Importa las rutas
 const sociosRoutes = require('./routes/socios');
 const empleadosRoutes = require('./routes/empleados.js');
