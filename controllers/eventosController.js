@@ -11,7 +11,9 @@ const enviarCorreo = async (req, res) => {
     const correos = results.map(row => row.correo);
 
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -19,11 +21,53 @@ const enviarCorreo = async (req, res) => {
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: correos,
-      subject: `Nuevo evento: ${evento.nombre_evento}`,
-      text: `Hola, se ha creado un nuevo evento: ${evento.nombre_evento}\n\n${evento.descripcion_evento}\n\nFecha: ${evento.fecha_evento}`
-    };
+  from: `"Instituto Transmite" <${process.env.EMAIL_USER}>`,
+  to: correos,
+  subject: `📢 Nuevo evento: ${evento.nombre_evento}`,
+  html: `
+    <div style="background-color: #1e1e2f; padding: 0; font-family: Arial, sans-serif;">
+      <!-- Encabezado con logo sobre fondo oscuro -->
+      <div style="background-color: #1e1e2f; text-align: center; padding: 20px;">
+        <img src="https://transmite.bo/views/layout/assets/frontend/img/Logo-Transmite-White-Colors.png" alt="Instituto Transmite" style="max-width: 180px;" />
+      </div>
+
+      <!-- Cuerpo del correo sobre fondo blanco -->
+      <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 20px;">
+        <h2 style="color: #2c3e50; text-align: center;">Nuevo Evento Académico</h2>
+
+        <p style="color: #333;"><strong>📌 Nombre del Evento:</strong> ${evento.nombre_evento}</p>
+        <p style="color: #333;"><strong>📝 Descripción:</strong> ${evento.descripcion_evento}</p>
+        <p style="color: #333;"><strong>📅 Fecha:</strong> ${evento.fecha_evento}</p>
+
+        <hr style="margin: 30px 0;" />
+
+        <footer style="font-size: 14px; color: #555; text-align: center;">
+          <p><strong>Instituto Tecnológico Transmite</strong></p>
+          <p>Calle Pinilla #2588 Edif. Arcadia, entre Av. Arce y Av. 6 de Agosto<br>La Paz, Bolivia</p>
+          <p>📞 +591 787 95415 | 📧 info@transmite.bo</p>
+
+          <div style="margin-top: 20px;">
+            <a href="https://www.instagram.com/transmitebolivia/" style="margin: 0 8px;" target="_blank">
+              <img src="https://cdn-icons-png.flaticon.com/24/2111/2111463.png" alt="Instagram" />
+            </a>
+            <a href="https://www.facebook.com/transmitebolivia/" style="margin: 0 8px;" target="_blank">
+              <img src="https://cdn-icons-png.flaticon.com/24/733/733547.png" alt="Facebook" />
+            </a>
+            <a href="https://www.tiktok.com/@transmitebolivia" style="margin: 0 8px;" target="_blank">
+              <img src="https://cdn-icons-png.flaticon.com/24/3046/3046121.png" alt="TikTok" />
+            </a>
+            <a href="https://transmite.bo" style="margin: 0 8px;" target="_blank">
+              <img src="https://cdn-icons-png.flaticon.com/24/535/535239.png" alt="Sitio Web" />
+            </a>
+          </div>
+
+          <p style="color: #888; margin-top: 15px;">Gracias por ser parte de nuestra comunidad educativa.</p>
+        </footer>
+      </div>
+    </div>
+  `
+};
+
 
     try {
       await transporter.sendMail(mailOptions);
