@@ -26,10 +26,10 @@ const exportarPagosExcel = async (req, res) => {
     const sheet = workbook.addWorksheet('Pagos');
 
     sheet.columns = [
-      { header: 'Código Socio', key: 'codigo_socio', width: 15 },
+      { header: 'Código de Estudiante', key: 'codigo_socio', width: 15 },
       { header: 'Nombre', key: 'nombre', width: 20 },
       { header: 'Apellido', key: 'apellido', width: 20 },
-      { header: 'Tipo de Socio', key: 'tipo_socio', width: 20 },
+      { header: 'Carrera', key: 'tipo_socio', width: 20 },
       { header: 'Año', key: 'año', width: 10 },
       { header: 'Mes', key: 'mes', width: 10 },
       { header: 'Pagado', key: 'pagado', width: 10 },
@@ -44,7 +44,7 @@ const exportarPagosExcel = async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=pagos_socios.xlsx');
+    res.setHeader('Content-Disposition', 'attachment; filename=pagos_mensualidades_estudiantes_transmite.xlsx');
 
     await workbook.xlsx.write(res);
     res.end();
@@ -143,7 +143,7 @@ const exportarExcel = async (req, res) => {
     const sheet = workbook.addWorksheet('Accesos Socios');
 
     sheet.columns = [
-      { header: 'Código Socio', key: 'codigo_socio', width: 20 },
+      { header: 'Código de Estudiante', key: 'codigo_socio', width: 20 },
       { header: 'Nombre', key: 'nombre', width: 20 },
       { header: 'Apellido', key: 'apellido', width: 20 },
       { header: 'Carrera', key: 'carrera', width: 25 },
@@ -161,7 +161,7 @@ const exportarExcel = async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=accesos_socios.xlsx');
+    res.setHeader('Content-Disposition', 'attachment; filename=accesos_estudiantes_transmite.xlsx');
 
     await workbook.xlsx.write(res);
     res.end();
