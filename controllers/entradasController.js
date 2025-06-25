@@ -9,7 +9,7 @@ exports.registerSocioEntry = (req, res) => {
     return res.status(400).json({ message: 'Código de socio es requerido' });
   }
 
-  const query = 'INSERT INTO entradas_Socios (codigo_socio) VALUES (?)';
+  const query = 'INSERT INTO entradas_socios (codigo_socio) VALUES (?)';
 
   db.query(query, [codigo_socio], (err, result) => {
     if (err) {
