@@ -20,12 +20,14 @@ const agregarEmpleado = async (req, res) => {
     const rol_id = roles[0].id_rol;
 
     // Insertar el empleado (sin fecha_registro)
-    await db.promise().query(
-      'INSERT INTO empleados (google_id, nombre,apellido, correo,  rol_id) VALUES (?, ?, ?, ?, ?)',
+    const [result] = await db.promise().query(
+      'INSERT INTO empleados (google_id, nombre, apellido, correo, rol_id) VALUES (?, ?, ?, ?, ?)',
       [google_id, nombre, apellido, correo, rol_id]
     );
 
-    res.status(200).json({ message: 'Empleado agregado correctamente' });
+    // Obtener el ID del nuevo empleado y devolverlo
+    const id_empleado = result.insertId;
+    res.status(201).json({ id_empleado, message: 'Empleado agregado correctamente' });
   } catch (error) {
     console.error('Error al agregar empleado:', error.message || error);
     res.status(500).json({ error: 'Error al agregar el empleado' });
@@ -74,34 +76,53 @@ const getEmpleadoByEmail = (req, res) => {
 };
 
 const actualizarEmpleado = (req, res) => {
-    const { nombre, apellido, rol_id } = req.body;
-    const correo = req.params.correo;
-  
+  const { nombre, apellido, rol_id } = req.body;
+  const correo = req.params.correo;
+
+  // Verificar si el empleado existe antes de intentar actualizar
+  const verificarEmpleadoQuery = 'SELECT id_empleado FROM empleados WHERE correo = ?';
+  db.query(verificarEmpleadoQuery, [correo], (err, result) => {
+    if (err) {
+      console.error('Error al verificar el empleado:', err.message || err);
+      return res.status(500).json({ error: 'Error al verificar el empleado' });
+    }
+
+    if (result.length === 0) {
+      // Si el correo no existe en la base de datos
+      return res.status(404).json({ error: 'Empleado no encontrado' });
+    }
+
+    // Si el empleado existe, proceder con la actualización
     const query = 'UPDATE empleados SET nombre = ?, apellido = ?, rol_id = ? WHERE correo = ?';
     db.query(query, [nombre, apellido, rol_id, correo], (err, result) => {
       if (err) {
+        console.error('Error al actualizar el empleado:', err.message || err);
         return res.status(500).json({ error: 'Error al actualizar el empleado' });
       }
+
       res.status(200).json({ message: 'Empleado actualizado correctamente' });
     });
-  };
+  });
+};
+
   const eliminarEmpleado = (req, res) => {
-    const { id_empleado } = req.params;
-  
-    const query = 'DELETE FROM empleados WHERE id_empleado = ?';
-    db.query(query, [id_empleado], (err, result) => {
-      if (err) {
-        return res.status(500).json({ error: 'Error al eliminar el empleado', details: err });
-      }
-  
-      // Si no se encuentra el empleado, result.affectedRows será 0
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Empleado no encontrado' });
-      }
-  
-      res.status(200).json({ message: 'Empleado eliminado correctamente' });
-    });
-  };
+  const { id_empleado } = req.params;
+
+  const query = 'DELETE FROM empleados WHERE id_empleado = ?';
+  db.query(query, [id_empleado], (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error al eliminar el empleado', details: err });
+    }
+
+    // Si no se encuentra el empleado, result.affectedRows será 0
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Empleado no encontrado' });
+    }
+
+    res.status(200).json({ message: 'Empleado eliminado correctamente' });
+  });
+};
+
   
   
 

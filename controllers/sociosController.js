@@ -343,24 +343,49 @@ const updateSocioByCodigo = (req, res) => {
 
 const deleteSocioByCodigo = async (req, res) => {
   const { codigo } = req.params;
+
   try {
-    // Eliminar registros relacionados
-    await db.promise().query('DELETE FROM cuotaspagadas WHERE codigo_socio = ?', [codigo]);
+    // Eliminar entradas de socios
+    const [resultEntradasSocios] = await db
+      .promise()
+      .query('DELETE FROM entradas_socios WHERE codigo_socio = ?', [codigo]);
+    console.log(`Entradas socios eliminadas: ${resultEntradasSocios.affectedRows}`);
 
-    // Eliminar socio
-    const [result] = await db.promise().query('DELETE FROM socios WHERE codigo = ?', [codigo]);
+    // Eliminar entradas de invitados asociadas al socio
+    const [resultEntradasInvitados] = await db
+      .promise()
+      .query('DELETE FROM entradas_invitados WHERE codigo_socio = ?', [codigo]);
+    console.log(`Entradas invitados eliminadas: ${resultEntradasInvitados.affectedRows}`);
 
-    if (result.affectedRows === 0) {
+    // Eliminar cuotas de pago del socio
+    const [resultCuotas] = await db
+      .promise()
+      .query('DELETE FROM cuotaspagadas WHERE codigo_socio = ?', [codigo]);
+    console.log(`Cuotas pagadas eliminadas: ${resultCuotas.affectedRows}`);
+
+    // Eliminar al socio
+    const [resultSocio] = await db
+      .promise()
+      .query('DELETE FROM socios WHERE codigo = ?', [codigo]);
+    console.log(`Socios eliminados: ${resultSocio.affectedRows}`);
+
+    // Verificar si el socio existía
+    if (resultSocio.affectedRows === 0) {
       return res.status(404).json({ message: 'Socio no encontrado' });
     }
 
     res.status(200).json({ message: 'Socio eliminado correctamente' });
-
   } catch (error) {
     console.error('Error al eliminar socio:', error);
-    res.status(500).json({ message: 'Error al eliminar socio', error: error.sqlMessage || error.message });
+    res.status(500).json({
+      message: 'Error al eliminar socio',
+      error: error.sqlMessage || error.message,
+    });
   }
 };
+
+
+
 
 
 module.exports = {
