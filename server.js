@@ -1,10 +1,9 @@
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const firebaseAdmin = require('firebase-admin');
-const db = require('./db'); // Ajusta la ruta si está en otro lado
+const db = require('./db');
 
 // Inicializa Firebase
 let serviceAccount;
@@ -20,14 +19,11 @@ firebaseAdmin.initializeApp({
 });
 
 const app = express();
-
 app.use(cors());
 app.use(bodyParser.json());
 
-// Rutas reales
-app.get('/api/ping', (_req, res) => res.json({ ok: true })); // Ruta para prueba
-
-// Importa tus rutas
+// Tus rutas
+app.get('/api/ping', (_req, res) => res.json({ ok: true }));
 app.use('/api/socios', require('./routes/socios'));
 app.use('/api/empleado', require('./routes/empleados'));
 app.use('/api/roles', require('./routes/roles'));
@@ -36,7 +32,10 @@ app.use('/api/permisos', require('./routes/permisos'));
 app.use('/api/eventos', require('./routes/eventos'));
 app.use('/api/reportes-acceso', require('./routes/reportesAcceso'));
 
-// Ruta por defecto (404)
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
-module.exports = app; // ¡Esto es lo que Vercel espera!
+// 🚀 Producción
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
+});
