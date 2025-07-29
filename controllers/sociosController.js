@@ -1,52 +1,40 @@
 const db = require('../db');
 
 // Función para registrar un socio con el tipo de socio
-const registerSocio = (req, res) => {
-  const { codigo, nombre, apellido, correo, fecha_nacimiento, face_descriptor, tipo_socio } = req.body;
+const registerSocio = async (req, res) => {
+  const { google_id, codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, fecha_vencimiento, face_descriptor } = req.body;
 
-  // Asegúrate de que face_descriptor esté correctamente formateado (por ejemplo, si es un array JSON, debe ser convertido a string)
-  const faceDescriptorString = face_descriptor ? JSON.stringify(face_descriptor) : null;
+  try {
+    // 1. Verificar que exista ese tipo de socio en la tabla tipos_socio
+    const [tipoResults] = await pool.query('SELECT id_tipo FROM tipos_socio WHERE nombre_tipo = ?', [tipo_socio]);
 
-  // Validar que el tipo de socio esté en los valores permitidos
-  const tiposSocioValidos = [
-    'Negocios Digitales',
-    'Desarrollo Fullstack',
-    'Analitica Digital',
-  ];
-
-  
-  if (!tiposSocioValidos.includes(tipo_socio.trim())) {
-    return res.status(400).json({ message: 'Tipo de socio no válido' });
-  }
-  
-
-
-  // Corregir la consulta SQL para incluir apellido
-  const query = `
-    INSERT INTO socios (codigo, nombre, apellido, correo, fecha_nacimiento, face_descriptor, tipo_socio)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
-
-  // Mostrar los valores antes de ejecutar la consulta (solo para depuración)
-  console.log('Datos a insertar:', {
-    codigo, nombre, apellido, correo, fecha_nacimiento, faceDescriptorString, tipo_socio
-  });
-
-  db.query(query, [codigo, nombre, apellido, correo, fecha_nacimiento, faceDescriptorString, tipo_socio], (err, result) => {
-    if (err) {
-      console.error('Error al registrar socio: ', err.message);
-      console.error('Error completo: ', err);
-      return res.status(500).json({ message: 'Error al guardar el socio', error: err.message });
+    if (tipoResults.length === 0) {
+      return res.status(400).json({ error: 'Tipo de socio no válido' });
     }
-    res.status(200).json({ message: 'Socio registrado exitosamente', id: result.insertId });
-  });
+
+    const tipo_socio = tipoResults[0].id_tipo;
+
+    // 2. Insertar en la tabla socios usando el id
+    await pool.query(
+      `INSERT INTO socios 
+      (google_id, codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, fecha_vencimiento, face_descriptor) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [google_id, codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, fecha_vencimiento, face_descriptor]
+    );
+
+    res.status(201).json({ message: 'Socio registrado exitosamente' });
+  } catch (error) {
+    console.error('Error al registrar socio:', error);
+    res.status(500).json({ error: 'Error al registrar socio' });
+  }
 };
-// Nuevo endpoint en tu backend
+
 const getUsersWithPayments = (req, res) => {
   const query = `
-    SELECT s.codigo, s.nombre, s.apellido, s.correo, s.fecha_nacimiento, s.face_descriptor, s.tipo_socio,
+    SELECT s.codigo, s.nombre, s.apellido, s.correo, s.fecha_nacimiento, s.face_descriptor, ts.nombre_tipo AS tipo_socio,
            p.mes, p.año, p.pagado
     FROM socios s
+    LEFT JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
     LEFT JOIN cuotaspagadas p ON s.codigo = p.codigo_socio
   `;
 
@@ -87,17 +75,19 @@ const getUsersWithPayments = (req, res) => {
 
 const verifySocio = (req, res) => {
   const { codigo } = req.params;
+  const query = `
+    SELECT s.*, ts.nombre_tipo AS tipo_socio
+    FROM socios s
+    LEFT JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
+    WHERE s.codigo = ?`;
 
-  const query = 'SELECT * FROM socios WHERE codigo = ?';
   db.query(query, [codigo], (err, results) => {
-    if (err) {
-      console.error('Error al verificar socio:', err.message);
-      return res.status(500).json({ message: 'Error al buscar socio' });
-    }
-    if (results.length === 0) {
-      return res.status(404).json({ message: 'Socio no encontrado' });
-    }
-    res.status(200).json(results[0]);
+    if (err) return res.status(500).json({ message: 'Error al buscar socio' });
+    if (results.length === 0) return res.status(404).json({ message: 'Socio no encontrado' });
+
+    const socio = results[0];
+    socio.face_descriptor = socio.face_descriptor ? JSON.parse(socio.face_descriptor) : null;
+    res.status(200).json(socio);
   });
 };
 
@@ -109,40 +99,37 @@ const updateFaceDescriptor = (req, res) => {
   }
 
   const faceDescriptorString = JSON.stringify(face_descriptor);
-
   const query = 'UPDATE socios SET face_descriptor = ? WHERE codigo = ?';
 
-  db.query(query, [faceDescriptorString, codigo], (err, result) => {
-    if (err) {
-      console.error('Error al actualizar face descriptor:', err.message);
-      return res.status(500).json({ message: 'Error al actualizar face descriptor' });
-    }
+  db.query(query, [faceDescriptorString, codigo], (err) => {
+    if (err) return res.status(500).json({ message: 'Error al actualizar face descriptor' });
     res.status(200).json({ message: 'Face descriptor actualizado exitosamente' });
   });
 };
 
-
-// Función para obtener los usuarios
 const getUsers = (req, res) => {
-  const query = 'SELECT codigo, nombre, apellido, correo, fecha_nacimiento, face_descriptor, tipo_socio FROM socios';
+  const query = `
+    SELECT s.codigo, s.nombre, s.apellido, s.correo, s.fecha_nacimiento, s.face_descriptor, ts.nombre_tipo AS tipo_socio
+    FROM socios s
+    LEFT JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo`;
+
   db.query(query, (err, results) => {
-    if (err) {
-      return res.status(500).json({ message: 'Error al obtener los usuarios', error: err });
-    }
+    if (err) return res.status(500).json({ message: 'Error al obtener los usuarios', error: err });
 
     const users = results.map(user => ({
       codigo: user.codigo,
       nombre: user.nombre,
-      correo: user.correo,
       apellido: user.apellido,
+      correo: user.correo,
       fechaNacimiento: user.fecha_nacimiento,
-      faceDescriptor: JSON.parse(user.face_descriptor),  // Asegúrate de parsear el descriptor facial correctamente
-      tipoSocio: user.tipo_socio,  // Añadimos el tipo de socio
+      faceDescriptor: JSON.parse(user.face_descriptor),
+      tipoSocio: user.tipo_socio
     }));
 
     res.json({ users });
   });
 };
+
 
 // Función para registrar la entrada de un invitado
 const registerInvitado = (req, res) => {
@@ -317,28 +304,36 @@ const updateSocioByCodigo = (req, res) => {
 
   const faceDescriptorStr = face_descriptor ? JSON.stringify(face_descriptor) : null;
 
-  const query = `
-    UPDATE socios SET 
-      nombre = ?, 
-      apellido = ?, 
-      correo = ?, 
-      fecha_nacimiento = ?, 
-      tipo_socio = ?, 
-      face_descriptor = ?
-    WHERE codigo = ?
-  `;
-
-  db.query(
-    query,
-    [nombre, apellido, correo, fecha_nacimiento, tipo_socio, faceDescriptorStr, codigo],
-    (err, result) => {
-      if (err) {
-        console.error('Error al actualizar socio:', err);
-        return res.status(500).json({ message: 'Error al actualizar socio' });
-      }
-      res.status(200).json({ message: 'Socio actualizado correctamente' });
+  const tipoSocioQuery = 'SELECT id_tipo FROM tipos_socio WHERE nombre = ?';
+  db.query(tipoSocioQuery, [tipo_socio], (err, rows) => {
+    if (err || rows.length === 0) {
+      return res.status(400).json({ message: 'Tipo de socio no encontrado' });
     }
-  );
+
+    const tipo_socio = rows[0].id_tipo;
+
+    const query = `
+      UPDATE socios SET 
+        nombre = ?, 
+        apellido = ?, 
+        correo = ?, 
+        fecha_nacimiento = ?, 
+        tipo_socio = ?, 
+        face_descriptor = ?
+      WHERE codigo = ?
+    `;
+
+    db.query(
+      query,
+      [nombre, apellido, correo, fecha_nacimiento, tipo_socio, faceDescriptorStr, codigo],
+      (err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Error al actualizar socio' });
+        }
+        res.status(200).json({ message: 'Socio actualizado correctamente' });
+      }
+    );
+  });
 };
 
 const deleteSocioByCodigo = async (req, res) => {

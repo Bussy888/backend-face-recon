@@ -1,21 +1,21 @@
 const db = require('../db');
 const ExcelJS = require('exceljs');
 
-
-
+// Exportar pagos a Excel
 const exportarPagosExcel = async (req, res) => {
   const query = `
     SELECT 
       c.codigo_socio,
       s.nombre,
       s.apellido,
-      s.tipo_socio,
+      ts.nombre_tipo AS tipo_socio,
       c.año,
       c.mes,
       c.pagado,
       c.fecha_pago
     FROM cuotaspagadas c
     JOIN socios s ON s.codigo = c.codigo_socio
+    JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
     ORDER BY c.año DESC, c.mes DESC
   `;
 
@@ -50,6 +50,8 @@ const exportarPagosExcel = async (req, res) => {
     res.end();
   });
 };
+
+// Resumen general
 const obtenerResumen = (req, res) => {
   const query = `
     SELECT 
@@ -63,6 +65,7 @@ const obtenerResumen = (req, res) => {
   });
 };
 
+// Visitas por periodo
 const visitasPorPeriodo = (req, res) => {
   const { periodo } = req.query;
 
@@ -81,12 +84,13 @@ const visitasPorPeriodo = (req, res) => {
   const query = `
     SELECT 
       ${groupByFecha} AS periodo,
-      s.tipo_socio AS carrera,
+      ts.nombre_tipo AS carrera,
       COUNT(*) AS ingresos_socios
     FROM entradas_socios es
     JOIN socios s ON s.codigo = es.codigo_socio
-    GROUP BY periodo, s.tipo_socio
-    ORDER BY periodo ASC, s.tipo_socio
+    JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
+    GROUP BY periodo, carrera
+    ORDER BY periodo ASC, carrera
   `;
 
   db.query(query, (err, results) => {
@@ -98,17 +102,17 @@ const visitasPorPeriodo = (req, res) => {
   });
 };
 
-
-  // Obtener ingresos registrados hoy
+// Ingresos de hoy
 const obtenerIngresosHoy = (req, res) => {
   const query = `
     SELECT 
-      s.tipo_socio AS carrera,
+      ts.nombre_tipo AS carrera,
       COUNT(*) AS ingresos_socios
     FROM entradas_socios es
     JOIN socios s ON s.codigo = es.codigo_socio
+    JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
     WHERE DATE(es.fecha_ingreso) = CURDATE()
-    GROUP BY s.tipo_socio
+    GROUP BY carrera
   `;
 
   db.query(query, (err, results) => {
@@ -119,17 +123,18 @@ const obtenerIngresosHoy = (req, res) => {
     res.json(results);
   });
 };
-
+// Exportar accesos a Excel
 const exportarExcel = async (req, res) => {
   const query = `
     SELECT 
       s.codigo AS codigo_socio,
       s.nombre,
       s.apellido,
-      s.tipo_socio AS carrera,
+      ts.nombre_tipo AS tipo_socio,
       es.fecha_ingreso
     FROM entradas_socios es
     JOIN socios s ON s.codigo = es.codigo_socio
+    JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
     ORDER BY es.fecha_ingreso DESC
   `;
 
@@ -146,7 +151,7 @@ const exportarExcel = async (req, res) => {
       { header: 'Código de Estudiante', key: 'codigo_socio', width: 20 },
       { header: 'Nombre', key: 'nombre', width: 20 },
       { header: 'Apellido', key: 'apellido', width: 20 },
-      { header: 'Carrera', key: 'carrera', width: 25 },
+      { header: 'Carrera', key: 'tipo_socio', width: 25 },
       { header: 'Fecha Ingreso', key: 'fecha', width: 20 },
       { header: 'Hora Ingreso', key: 'hora', width: 15 }
     ];
@@ -168,21 +173,20 @@ const exportarExcel = async (req, res) => {
   });
 };
 
-
-// Obtener cantidad de pagos por mes del año actual
-// Obtener pagos por mes y tipo de socio
+// Pagos por mes y tipo de socio
 const pagosPorMes = (req, res) => {
   const query = `
     SELECT 
       cp.año,
       cp.mes,
-      s.tipo_socio,
+      ts.nombre_tipo AS tipo_socio,
       COUNT(*) AS cantidad_pagos,
       SUM(CASE WHEN cp.pagado THEN 1 ELSE 0 END) AS pagos_completados
     FROM cuotaspagadas cp
     JOIN socios s ON cp.codigo_socio = s.codigo
-    GROUP BY cp.año, cp.mes, s.tipo_socio
-    ORDER BY cp.año DESC, cp.mes DESC, s.tipo_socio;
+    JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
+    GROUP BY cp.año, cp.mes, tipo_socio
+    ORDER BY cp.año DESC, cp.mes DESC, tipo_socio;
   `;
 
   db.query(query, (err, results) => {
@@ -195,16 +199,17 @@ const pagosPorMes = (req, res) => {
 };
 
 
-// Obtener tipos de socios que más han pagado
+// Tipos de socios que más han pagado
 const pagosPorTipoSocio = (req, res) => {
   const query = `
     SELECT 
-      s.tipo_socio,
+      ts.nombre_tipo AS tipo_socio,
       COUNT(*) AS cantidad
     FROM cuotaspagadas c
     JOIN socios s ON s.codigo = c.codigo_socio
+    JOIN tipos_socio ts ON s.tipo_socio = ts.id_tipo
     WHERE c.pagado = TRUE
-    GROUP BY s.tipo_socio
+    GROUP BY tipo_socio
     ORDER BY cantidad DESC
   `;
   db.query(query, (err, results) => {
@@ -215,7 +220,6 @@ const pagosPorTipoSocio = (req, res) => {
     res.json(results);
   });
 };
-
 
 module.exports = {
   obtenerResumen,

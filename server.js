@@ -31,6 +31,7 @@ app.use('/api/entradas', require('./routes/entradas'));
 app.use('/api/permisos', require('./routes/permisos'));
 app.use('/api/eventos', require('./routes/eventos'));
 app.use('/api/reportes-acceso', require('./routes/reportesAcceso'));
+app.use('/api/tipos-socio', require('./routes/tipoSocio'));
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
