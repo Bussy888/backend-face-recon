@@ -36,7 +36,4 @@ app.use('/api/tipos-socio', require('./routes/tipoSocio'));
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
 // 🚀 Producción
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
-});
+module.exports = app; // ¡Esto es lo que Vercel espera!
