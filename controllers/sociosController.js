@@ -298,42 +298,33 @@ const updateSocioByCodigo = (req, res) => {
     apellido,
     correo,
     fecha_nacimiento,
-    tipo_socio,
+    tipo_socio, // <-- es el ID
     face_descriptor
   } = req.body;
 
   const faceDescriptorStr = face_descriptor ? JSON.stringify(face_descriptor) : null;
 
-  const tipoSocioQuery = 'SELECT id_tipo FROM tipos_socio WHERE nombre = ?';
-  db.query(tipoSocioQuery, [tipo_socio], (err, rows) => {
-    if (err || rows.length === 0) {
-      return res.status(400).json({ message: 'Tipo de socio no encontrado' });
-    }
+  const query = `
+    UPDATE socios SET 
+      nombre = ?, 
+      apellido = ?, 
+      correo = ?, 
+      fecha_nacimiento = ?, 
+      tipo_socio = ?, 
+      face_descriptor = ?
+    WHERE codigo = ?
+  `;
 
-    const tipo_socio = rows[0].id_tipo;
-
-    const query = `
-      UPDATE socios SET 
-        nombre = ?, 
-        apellido = ?, 
-        correo = ?, 
-        fecha_nacimiento = ?, 
-        tipo_socio = ?, 
-        face_descriptor = ?
-      WHERE codigo = ?
-    `;
-
-    db.query(
-      query,
-      [nombre, apellido, correo, fecha_nacimiento, tipo_socio, faceDescriptorStr, codigo],
-      (err) => {
-        if (err) {
-          return res.status(500).json({ message: 'Error al actualizar socio' });
-        }
-        res.status(200).json({ message: 'Socio actualizado correctamente' });
+  db.query(
+    query,
+    [nombre, apellido, correo, fecha_nacimiento, tipo_socio, faceDescriptorStr, codigo],
+    (err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Error al actualizar socio' });
       }
-    );
-  });
+      res.status(200).json({ message: 'Socio actualizado correctamente' });
+    }
+  );
 };
 
 const deleteSocioByCodigo = async (req, res) => {
