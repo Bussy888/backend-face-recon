@@ -32,8 +32,15 @@ app.use('/api/permisos', require('./routes/permisos'));
 app.use('/api/eventos', require('./routes/eventos'));
 app.use('/api/reportes-acceso', require('./routes/reportesAcceso'));
 app.use('/api/tipos-socio', require('./routes/tipoSocio'));
+app.use('/api/auth', require('./routes/auth'));
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
 // 🚀 Producción
-module.exports = app; // ¡Esto es lo que Vercel espera!
+//module.exports = app; // ¡Esto es lo que Vercel espera!
+
+
+const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  });

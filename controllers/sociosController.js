@@ -2,24 +2,28 @@ const db = require('../db');
 
 // Función para registrar un socio con el tipo de socio
 const registerSocio = async (req, res) => {
-  const { google_id, codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, fecha_vencimiento, face_descriptor } = req.body;
+  const { codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, face_descriptor } = req.body;
+  const fecha_vencimiento = new Date();
 
   try {
-    // 1. Verificar que exista ese tipo de socio en la tabla tipos_socio
-    const [tipoResults] = await pool.query('SELECT id_tipo FROM tipos_socio WHERE nombre_tipo = ?', [tipo_socio]);
+    // 1. Verificar que exista ese id_tipo en la tabla tipos_socio
+    const [tipoResults] = await db.promise().query(
+      'SELECT id_tipo FROM tipos_socio WHERE id_tipo = ?',
+      [tipo_socio] // ahora tipo_socio es el id
+    );
 
     if (tipoResults.length === 0) {
       return res.status(400).json({ error: 'Tipo de socio no válido' });
     }
 
-    const tipo_socio = tipoResults[0].id_tipo;
+    const idTipoSocio = tipoResults[0].id_tipo;
 
-    // 2. Insertar en la tabla socios usando el id
-    await pool.query(
+    // 2. Insertar en la tabla socios usando el idTipoSocio
+    await db.promise().query(
       `INSERT INTO socios 
-      (google_id, codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, fecha_vencimiento, face_descriptor) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [google_id, codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, fecha_vencimiento, face_descriptor]
+      (codigo, nombre, apellido, tipo_socio, correo, fecha_nacimiento, fecha_vencimiento, face_descriptor) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [codigo, nombre, apellido, idTipoSocio, correo, fecha_nacimiento, fecha_vencimiento, JSON.stringify(face_descriptor)]
     );
 
     res.status(201).json({ message: 'Socio registrado exitosamente' });
@@ -28,6 +32,9 @@ const registerSocio = async (req, res) => {
     res.status(500).json({ error: 'Error al registrar socio' });
   }
 };
+
+
+
 
 const getUsersWithPayments = (req, res) => {
   const query = `
@@ -337,12 +344,7 @@ const deleteSocioByCodigo = async (req, res) => {
       .query('DELETE FROM entradas_socios WHERE codigo_socio = ?', [codigo]);
     console.log(`Entradas socios eliminadas: ${resultEntradasSocios.affectedRows}`);
 
-    // Eliminar entradas de invitados asociadas al socio
-    const [resultEntradasInvitados] = await db
-      .promise()
-      .query('DELETE FROM entradas_invitados WHERE codigo_socio = ?', [codigo]);
-    console.log(`Entradas invitados eliminadas: ${resultEntradasInvitados.affectedRows}`);
-
+    
     // Eliminar cuotas de pago del socio
     const [resultCuotas] = await db
       .promise()
