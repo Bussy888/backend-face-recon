@@ -37,10 +37,10 @@ app.use('/api/auth', require('./routes/auth'));
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
 // 🚀 Producción
-//module.exports = app; // ¡Esto es lo que Vercel espera!
+module.exports = app; // ¡Esto es lo que Vercel espera!
 
 
-const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-  });
+// const PORT = process.env.PORT || 4000;
+//   app.listen(PORT, () => {
+//     console.log(`Servidor corriendo en http://localhost:${PORT}`);
+//   });
